@@ -1,0 +1,34 @@
+[default]
+help: 
+    just --list
+
+# Build the SD image
+build config="rpi4b":
+    git add -A
+    nix build '.#nixosConfigurations.{{config}}.config.system.build.sdImage'
+    ls -lh result/sd-image/
+
+# Show disks so you can pick your card
+disks:
+    lsblk -o NAME,SIZE,MODEL,TRAN,MOUNTPOINTS
+
+# Flash image to a device: just flash /dev/sdX
+flash dev:
+    sudo umount {{dev}}* || true
+    pv result/sd-image/*.img.zst | zstd -d | sudo dd of={{dev}} bs=4M conv=fsync
+    sync
+
+# Write auth key to the FIRMWARE partition: just authkey /dev/sdX1 tskey-auth-XXXX ts-authkey
+authkey part key file="ts-authkey":
+    sudo mount {{part}} /mnt
+    printf '%s' '{{key}}' | sudo tee /mnt/{{file}} > /dev/null
+    sudo umount /mnt
+    sync
+
+# Deploy without making it the boot default: just test rpi4b brosin@rpi4b-poc
+test config target:
+    nixos-rebuild test --flake .#{{config}} --target-host {{target}} --sudo
+
+# Deploy permanently: just switch rpi4b brosin@rpi4b-poc
+switch config target:
+    nixos-rebuild switch --flake .#{{config}} --target-host {{target}} --sudo
