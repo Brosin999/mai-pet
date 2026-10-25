@@ -12,10 +12,18 @@
       nixos-hardware,
       ...
     }@inputs:
+    let
+      system = "aarch64-linux";
+      pkgs-unstable = import nixpkgs-unstable {
+        inherit system;
+      };
+    in
     {
       nixosConfigurations.rpi4b = nixpkgs.lib.nixosSystem {
-        system = "aarch64-linux";
-        specialArgs = { inherit inputs; };
+        inherit system;
+        specialArgs = {
+          inherit inputs pkgs-unstable;
+        };
         modules = [
           # nixos-hardware.nixosModules.raspberry-pi-4
           ./modules/nix.nix

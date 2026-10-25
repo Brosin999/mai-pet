@@ -1,5 +1,6 @@
 {
   lib,
+  pkgs-unstable,
   ...
 }:
 {
@@ -23,10 +24,15 @@
 
   # tailscale
   services.tailscale = {
+    package = pkgs-unstable.tailscale;
     enable = true;
     openFirewall = true;
     useRoutingFeatures = "client"; # idk
     authKeyFile = "/boot/firmware/ts-authkey";
+  };
+  systemd.services.tailscaled.environment = {
+    # GOMEMLIMIT = "64MiB";
+    GOGC = "50";
   };
   networking.firewall.trustedInterfaces = [ "tailscale0" ];
 
@@ -46,6 +52,23 @@
     enable = true;
     algorithm = "zstd";
   };
+  services.journald.extraConfig = ''
+    Storage=volatile
+    RuntimeMaxUse=16M
+  '';
+
+  # trim the OS for reduced mem usage
+  documentation.enable = false;
+  documentation.nixos.enable = false;
+  programs.command-not-found.enable = false;
+  environment.defaultPackages = [ ];
+  services.udisks2.enable = false;
+  xdg.autostart.enable = false;
+  fonts.fontconfig.enable = false;
+  boot.enableContainers = false;
+
+  # Simulate low memory availablity (pi zero)
+  boot.kernelParams = [ "mem=512M" ];
 
   boot.kernel.sysctl = {
     "vm.swappiness" = 1;
